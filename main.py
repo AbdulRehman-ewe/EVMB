@@ -1,4 +1,5 @@
 import time
+
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
@@ -6,8 +7,14 @@ from selenium.common.exceptions import NoSuchElementException
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
+
 import pandas as pd
-service = Service("C:/Program Files/Google/Chrome/Application/chromedriver.exe")
+
+from utils import prepare_data, save_df
+
+
+service = Service(ChromeDriverManager().install())  # Service("C:/Program Files/Google/Chrome/Application/chromedriver.exe")
 service.start()
 driver = webdriver.Chrome(service=service)
 driver.get("https://demo.evalmybrand.com/#/app/main/customer/dashboard")
@@ -23,13 +30,17 @@ time.sleep(2)
 driver.execute_script("document.querySelector('.d-flex.flex-column.overflow-auto').scrollBy(0, 500)")
 time.sleep(4)
 button= driver.find_element(By.XPATH,"/html/body/div[4]/div[2]/div/mat-dialog-container/app-date-picker/div/div[2]/mat-tab-group/div/mat-tab-body/div/div/div[1]/div[2]/button[7]")
+
 # Make the button visible
 driver.execute_script("arguments[0].style.display='block'", button)
+
 # Click the button
 button.click()
 time.sleep(2)
 driver.find_element(By.XPATH,"/html/body/div[4]/div[2]/div/mat-dialog-container/app-date-picker/div/div[2]/mat-tab-group/div/mat-tab-body/div/div/div[2]/div/ngx-daterangepicker-material/div/div[3]/div/button[2]").click()
 time.sleep(4)
+
+lst = []
 for x in range(15):
   path ="#overall_data > svg > rect.mybar.pageBar"+str(x)+".pageBar"
   time.sleep(2)
@@ -43,7 +54,9 @@ for x in range(15):
     Fromdate=driver.find_element(By.CSS_SELECTOR,'#pdf > div > app-glasdoor-dashboard > div > div.p-2.ng-star-inserted > mat-card > div.cursor-pointer.ng-star-inserted > app-glasdoor-overall-page > div > div > div')
     time.sleep(5)
     list1= Fromdate.text
-    print(list1)
+    data = prepare_data(list1)
+    print(data)
+    lst.append(data)
     driver.find_element(By.CSS_SELECTOR, "#overall_data > svg > text:nth-child(3)").click()
     time.sleep(2)
   except NoSuchElementException:
@@ -53,11 +66,8 @@ for x in range(15):
     print(f'Exception:{e}')
 
 # Create a dataframe from the list
-df = pd.DataFrame(list1, columns='columns')
+df = pd.DataFrame(lst, columns=['From Date', 'To Date', 'Reviews'])
+df.head()
 
-# Write the dataframe to an Excel file
-df.to_excel('my_list.xlsx', index=False)
-
-
-
-
+# Save the data
+save_df(df)
